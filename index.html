@@ -1,0 +1,210 @@
+<!DOCTYPE>
+<html>
+  <head>
+    <title>Clippi: Combo Timing Adjustments</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/kognise/water.css@latest/dist/dark.min.css">
+    <script src="https://unpkg.com/vue@3.2.36/dist/vue.global.prod.js"></script>
+    <style>
+      .logo {
+        width: 38px;
+        height: 38px;
+        margin-right: 10px;
+        font-size: 10px;
+      }
+      .inline-block {
+        display: inline-block !important;
+      }
+      .mr-sm {
+        margin-right: 10px;
+      }
+      .save {
+        background: #40723A;
+      }
+      .save:hover {
+        background: #60925A;
+      }
+      .error {
+        color: #FF8585;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <h1>
+        <img src="clippi.png" class="logo" alt="Clippi logo">
+        Clippi: Combo Timing Adjustments
+      </h1>
+      <template v-if="!content || !content.queue">
+        <label for="input">
+          <strong>
+            Upload <code>combos.json</code> file:
+          </strong>
+        </label>
+        <input
+          id="input"
+          type="file"
+          @input="setContent($event)"
+        />
+        <div v-if="invalid" class="error">
+          The file you supplied seems to be invalid.
+        </div>
+      </template>
+      <template v-else>
+        <div class="inline-block mr-sm">
+          <label for="start">
+            <strong>
+              Start offset:
+            </strong>
+          </label>
+          <div>
+            <input
+              v-model.number="start"
+              id="start"
+              type="number"
+              class="inline-block"
+            />
+            <span class="inline-block">
+              {{ startSeconds }}s
+            </span>
+          </div>
+        </div>
+
+        <div class="inline-block mr-sm">
+          <label for="end">
+            <strong>
+              End offset:
+            </strong>
+          </label>
+          <div>
+            <input
+              v-model.number="end"
+              id="end"
+              type="number"
+              class="inline-block"
+            />
+            <span class="inline-block">
+              {{ endSeconds }}s
+            </span>
+          </div>
+        </div>
+    
+        <div class="inline-block">
+          <button
+            class="save"
+            @click="saveFile"
+          >
+            Save
+          </button>
+          <button @click="content = null">
+            Reset
+          </button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Date</th>
+              <th>Start frame</th>
+              <th>End frame</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(file, fileIndex) in computedContent.queue"
+              :key="'file' + fileIndex"
+            >
+              <td>{{ fileNameFromPath(file.path) }}</td>
+              <td>{{ file.gameStartAt }}</td>
+              <td>{{ file.startFrame.toLocaleString() }}</td>
+              <td>{{ file.endFrame.toLocaleString() }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
+    </div>
+    <script>
+      const app = Vue.createApp({
+        data: function () {
+          return {
+            name: 'combos.json',
+            invalid: false,
+            start: 0,
+            end: 0,
+            content: null
+          };
+        },
+        methods: {
+          fileNameFromPath: function (path) {
+            path = path.split('/').join('\\');
+            let items = path.split('\\');
+            let file = items[items.length - 1];
+            return file;
+          },
+          asSeconds: function (time) {
+            return (time / 60).toFixed(2);
+          },
+          setContent: function (evt) {
+            const file = evt.target.files[0];
+            this.name = file.name || this.name;
+            const reader = new FileReader();
+            reader.onload = ((theFile) => {
+              return (evt) => {
+                let content = {};
+                try {
+                  content = JSON.parse(evt.target.result);
+                } catch (err) {}
+                this.content = content;
+                if (!content || !content.queue) {
+                  this.invalid = true
+                } else {
+                  this.invalid = false;
+                }
+              };
+            })(file);
+            reader.readAsText(file);
+          },
+          saveFile: function () {
+            const link = document.createElement('a');
+            const file = new Blob([this.dataToSave], { type: 'text/plain' });
+            link.href = URL.createObjectURL(file);
+            link.download = this.name;
+            link.click();
+            URL.revokeObjectURL(link.href);
+          }
+        },
+        computed: {
+          startSeconds: function () {
+            return this.asSeconds(this.start);
+          },
+          endSeconds: function () {
+            return this.asSeconds(this.end);
+          },
+          computedContent: function () {
+            if (!this.content || !this.content.queue) {
+              return {};
+            }
+            return {
+              ...this.content,
+              queue: this.content.queue.map((file) => {
+                return {
+                  ...file,
+                  startFrame: file.startFrame + this.start,
+                  endFrame: file.endFrame + this.end
+                };
+              })
+            };
+          },
+          dataToSave: function () {
+            let data = '';
+            try {
+              data = JSON.stringify(this.computedContent, null, 2);
+            } catch (err) {}
+            return data;
+          }
+        }
+      });
+      app.mount('#app');
+    </script>
+  </body>
+</html>
