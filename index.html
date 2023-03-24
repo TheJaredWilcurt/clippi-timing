@@ -17,6 +17,10 @@
       .mr-sm {
         margin-right: 10px;
       }
+      .mb-sm {
+        display: inline-block;
+        margin-bottom: 10px;
+      }
       .save {
         background: #40723A;
       }
@@ -35,7 +39,7 @@
         Clippi: Combo Timing Adjustments
       </h1>
       <template v-if="!content || !content.queue">
-        <label for="input">
+        <label for="input" class="mb-sm">
           <strong>
             Upload <code>combos.json</code> file:
           </strong>
